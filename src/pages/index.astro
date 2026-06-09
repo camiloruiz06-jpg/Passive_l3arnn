@@ -1,5 +1,7 @@
 ---
 import { client, urlFor } from '../lib/sanity'
+import { site } from '../lib/config'
+import Footer from '../components/Footer.astro'
 
 const posts = await client.fetch(`
   *[_type == "post"] | order(publishedAt desc) {
@@ -18,26 +20,26 @@ const posts = await client.fetch(`
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Datos curiosos y fascinantes sobre ciencia, tecnología y el mundo. Aprende de forma pasiva con passive_l3arn." />
-    <title>passive_l3arn — Aprende sin darte cuenta</title>
+    <meta name="description" content={site.description} />
+    <title>{site.name} — Aprende Sin Darte Cuenta</title>
+    <link rel="icon" href="/logo.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet" />
   </head>
   <body>
     <header>
       <div class="header-inner">
-        <div class="logo">
-          <span class="logo-icon">🧠</span>
-          <span class="logo-text">passive_l3arn</span>
-        </div>
-        <p class="tagline">Datos curiosos que no sabías que necesitabas saber</p>
+        <img src="/logo.png" alt={site.name} class="logo-img" />
+        <h1 class="logo-text">{site.name}</h1>
+        <p class="tagline">{site.tagline}</p>
       </div>
     </header>
 
     <main>
       {posts.length === 0 ? (
         <div class="empty">
-          <p>🚀 Próximamente los primeros posts...</p>
+          <p>🚀 Próximamente Los Primeros Posts...</p>
         </div>
       ) : (
         <div class="grid">
@@ -56,7 +58,7 @@ const posts = await client.fetch(`
               <div class="card-body">
                 <h2>{post.title}</h2>
                 {post.excerpt && <p>{post.excerpt}</p>}
-                <span class="read-more">Leer más →</span>
+                <span class="read-more">Leer Más →</span>
               </div>
             </a>
           ))}
@@ -64,9 +66,7 @@ const posts = await client.fetch(`
       )}
     </main>
 
-    <footer>
-      <p>© 2025 passive_l3arn · Hecho con 🧠 y curiosidad</p>
-    </footer>
+    <Footer />
   </body>
 </html>
 
@@ -74,43 +74,48 @@ const posts = await client.fetch(`
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   body {
-    font-family: 'Inter', sans-serif;
-    background: #0a0a0a;
-    color: #f0f0f0;
+    font-family: 'Nunito', sans-serif;
+    background: #fdf2f6;
+    color: #2b3a67;
     min-height: 100vh;
   }
 
   header {
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-    padding: 3rem 1.5rem;
+    background: linear-gradient(180deg, #8ecbf5 0%, #b9defa 45%, #f7cdda 100%);
+    padding: 3rem 1.5rem 3.5rem;
     text-align: center;
-    border-bottom: 1px solid #222;
   }
 
-  .header-inner { max-width: 800px; margin: 0 auto; }
-
-  .logo {
+  .header-inner {
+    max-width: 800px;
+    margin: 0 auto;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    margin-bottom: 0.75rem;
   }
 
-  .logo-icon { font-size: 2.5rem; }
+  .logo-img {
+    width: 130px;
+    height: 130px;
+    object-fit: contain;
+    filter: drop-shadow(0 6px 14px rgba(43, 58, 103, 0.2));
+  }
 
   .logo-text {
-    font-size: 2rem;
-    font-weight: 900;
-    background: linear-gradient(90deg, #a78bfa, #60a5fa);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    font-family: 'Fredoka', sans-serif;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #2b3a67;
+    margin-top: 0.5rem;
+    letter-spacing: -0.5px;
   }
 
   .tagline {
-    color: #888;
-    font-size: 1rem;
+    color: #3d4f7c;
+    font-size: 1.05rem;
+    font-weight: 600;
     margin-top: 0.5rem;
+    max-width: 480px;
   }
 
   main {
@@ -122,24 +127,26 @@ const posts = await client.fetch(`
   .grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 1.5rem;
+    gap: 1.75rem;
   }
 
   .card {
-    background: #111;
-    border-radius: 16px;
+    background: #fff;
+    border-radius: 22px;
     overflow: hidden;
-    border: 1px solid #222;
+    border: 2px solid #f0e3ea;
     text-decoration: none;
     color: inherit;
-    transition: transform 0.2s ease, border-color 0.2s ease;
+    transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
     display: flex;
     flex-direction: column;
+    box-shadow: 0 4px 16px rgba(43, 58, 103, 0.06);
   }
 
   .card:hover {
-    transform: translateY(-4px);
-    border-color: #a78bfa;
+    transform: translateY(-6px);
+    border-color: #8ecbf5;
+    box-shadow: 0 14px 30px rgba(43, 58, 103, 0.14);
   }
 
   .card-image {
@@ -155,63 +162,58 @@ const posts = await client.fetch(`
     transition: transform 0.3s ease;
   }
 
-  .card:hover .card-image img { transform: scale(1.05); }
+  .card:hover .card-image img { transform: scale(1.06); }
 
   .badge {
     position: absolute;
-    top: 0.75rem;
-    left: 0.75rem;
-    background: #a78bfa;
-    color: white;
-    font-size: 0.7rem;
+    top: 0.85rem;
+    left: 0.85rem;
+    background: #f4849f;
+    color: #fff;
+    font-size: 0.72rem;
     font-weight: 700;
-    padding: 0.25rem 0.75rem;
+    padding: 0.3rem 0.85rem;
     border-radius: 999px;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    box-shadow: 0 2px 6px rgba(43, 58, 103, 0.18);
   }
 
   .card-body {
-    padding: 1.25rem;
+    padding: 1.35rem;
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.6rem;
   }
 
   .card-body h2 {
-    font-size: 1.1rem;
-    font-weight: 700;
-    line-height: 1.4;
-    color: #f0f0f0;
+    font-family: 'Fredoka', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 600;
+    line-height: 1.35;
+    color: #2b3a67;
   }
 
   .card-body p {
-    font-size: 0.875rem;
-    color: #888;
+    font-size: 0.92rem;
+    color: #5a6789;
     line-height: 1.6;
     flex: 1;
   }
 
   .read-more {
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: #a78bfa;
-    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #4a9fe0;
+    margin-top: 0.4rem;
   }
 
   .empty {
     text-align: center;
     padding: 6rem 2rem;
-    color: #555;
-    font-size: 1.25rem;
-  }
-
-  footer {
-    text-align: center;
-    padding: 2rem;
-    color: #444;
-    font-size: 0.85rem;
-    border-top: 1px solid #1a1a1a;
+    color: #8a97b8;
+    font-size: 1.3rem;
+    font-family: 'Fredoka', sans-serif;
   }
 </style>
