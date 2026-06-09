@@ -29,6 +29,29 @@ if (!post) return Astro.redirect('/404')
 const formattedDate = post.publishedAt
   ? new Date(post.publishedAt).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })
   : null
+
+const canonical = `${site.url}/post/${slug}`
+const ogImage = post.mainImage
+  ? urlFor(post.mainImage).width(1200).height(630).url()
+  : `${site.url}/logo.png`
+
+// Datos estructurados para Google (rich results)
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Article',
+  headline: post.title,
+  description: post.excerpt || post.title,
+  image: ogImage,
+  datePublished: post.publishedAt,
+  articleSection: post.category,
+  author: { '@type': 'Organization', name: site.name },
+  publisher: {
+    '@type': 'Organization',
+    name: site.name,
+    logo: { '@type': 'ImageObject', url: `${site.url}/logo.png` },
+  },
+  mainEntityOfPage: { '@type': 'WebPage', '@id': canonical },
+}
 ---
 
 <html lang="es">
@@ -38,6 +61,26 @@ const formattedDate = post.publishedAt
     <meta name="description" content={post.excerpt || post.title} />
     <title>{post.title} — {site.name}</title>
     <link rel="icon" href="/logo.png" />
+    <link rel="canonical" href={canonical} />
+
+    <!-- Open Graph (Facebook, WhatsApp, etc.) -->
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content={post.title} />
+    <meta property="og:description" content={post.excerpt || post.title} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:site_name" content={site.name} />
+    <meta property="og:locale" content="es_ES" />
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={post.title} />
+    <meta name="twitter:description" content={post.excerpt || post.title} />
+    <meta name="twitter:image" content={ogImage} />
+
+    <!-- Datos estructurados para Google -->
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet" />

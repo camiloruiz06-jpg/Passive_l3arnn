@@ -28,6 +28,22 @@ const categories: string[] = [
     <meta name="description" content={site.description} />
     <title>{site.name} — Aprende Sin Darte Cuenta</title>
     <link rel="icon" href="/logo.png" />
+    <link rel="canonical" href={site.url} />
+
+    <!-- Open Graph (Facebook, WhatsApp, etc.) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={`${site.name} — Aprende Sin Darte Cuenta`} />
+    <meta property="og:description" content={site.description} />
+    <meta property="og:image" content={`${site.url}/logo.png`} />
+    <meta property="og:url" content={site.url} />
+    <meta property="og:site_name" content={site.name} />
+    <meta property="og:locale" content="es_ES" />
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={`${site.name} — Aprende Sin Darte Cuenta`} />
+    <meta name="twitter:description" content={site.description} />
+    <meta name="twitter:image" content={`${site.url}/logo.png`} />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet" />

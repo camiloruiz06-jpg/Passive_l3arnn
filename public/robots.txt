@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://passive-l3arnn.vercel.app/sitemap-index.xml

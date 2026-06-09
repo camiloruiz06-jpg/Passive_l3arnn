@@ -3,6 +3,7 @@
 
 export const site = {
   name: 'Passive_l3arn',
+  url: 'https://passive-l3arnn.vercel.app',
   tagline: 'Datos Curiosos Que No Sabías Que Necesitabas Saber',
   description:
     'Datos curiosos y fascinantes sobre ciencia, tecnología, naturaleza y el mundo. Aprende de forma pasiva con Passive_l3arn.',
