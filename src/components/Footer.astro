@@ -1,5 +1,11 @@
 ---
 import { socials, site } from '../lib/config'
+import { client } from '../lib/sanity'
+
+// Categorías reales para mostrar en el footer
+const categories: string[] = await client.fetch(
+  `array::unique(*[_type == "post" && defined(category)].category)`
+)
 
 const icons: Record<string, string> = {
   instagram:
@@ -12,23 +18,54 @@ const icons: Record<string, string> = {
 ---
 
 <footer class="site-footer">
-  <div class="footer-inner">
-    <div class="footer-brand">
-      <img src="/logo.png" alt={site.name} class="footer-logo" />
-      <span class="footer-name">{site.name}</span>
+  <div class="footer-grid">
+    <!-- Columna 1: marca -->
+    <div class="footer-col footer-brand-col">
+      <div class="footer-brand">
+        <img src="/logo.png" alt={site.name} class="footer-logo" />
+        <span class="footer-name">{site.name}</span>
+      </div>
+      <p class="footer-blurb">
+        Aprender nunca fue tan fácil. Datos curiosos y fascinantes sobre ciencia,
+        naturaleza, espacio y mucho más — para que aprendas mientras haces scroll. 🧠
+      </p>
+      <div class="socials">
+        {socials.map((s) => (
+          <a href={s.url} target="_blank" rel="noopener" aria-label={s.name} class="social-link">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+              <path d={icons[s.icon]} />
+            </svg>
+          </a>
+        ))}
+      </div>
     </div>
 
-    <div class="socials">
-      {socials.map((s) => (
-        <a href={s.url} target="_blank" rel="noopener" aria-label={s.name} class="social-link">
-          <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
-            <path d={icons[s.icon]} />
-          </svg>
-        </a>
-      ))}
+    <!-- Columna 2: navegación -->
+    <div class="footer-col">
+      <h4>Navegación</h4>
+      <ul>
+        <li><a href="/">Inicio</a></li>
+        {socials.map((s) => (
+          <li><a href={s.url} target="_blank" rel="noopener">{s.name}</a></li>
+        ))}
+      </ul>
     </div>
 
-    <p class="copyright">© 2026 {site.name} · Hecho Con 🧠 Y Curiosidad</p>
+    <!-- Columna 3: categorías -->
+    {categories.length > 0 && (
+      <div class="footer-col">
+        <h4>Categorías</h4>
+        <ul>
+          {categories.map((cat) => (
+            <li><a href="/">{cat}</a></li>
+          ))}
+        </ul>
+      </div>
+    )}
+  </div>
+
+  <div class="footer-bottom">
+    <p>© 2026 {site.name} · Hecho Con 🧠 Y Curiosidad</p>
   </div>
 </footer>
 
@@ -36,30 +73,43 @@ const icons: Record<string, string> = {
   .site-footer {
     background: linear-gradient(135deg, #2b3a67 0%, #1f2a4d 100%);
     color: #fff;
-    padding: 3rem 1.5rem 2rem;
+    padding: 3.5rem 1.5rem 2rem;
     margin-top: 4rem;
   }
 
-  .footer-inner {
-    max-width: 800px;
+  .footer-grid {
+    max-width: 1100px;
     margin: 0 auto;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1.25rem;
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 2.5rem;
+  }
+
+  @media (max-width: 720px) {
+    .footer-grid {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+      text-align: center;
+    }
   }
 
   .footer-brand {
     display: flex;
     align-items: center;
     gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  @media (max-width: 720px) {
+    .footer-brand { justify-content: center; }
   }
 
   .footer-logo {
     width: 48px;
     height: 48px;
-    object-fit: contain;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.5);
   }
 
   .footer-name {
@@ -68,14 +118,30 @@ const icons: Record<string, string> = {
     font-weight: 600;
   }
 
+  .footer-blurb {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.92rem;
+    line-height: 1.7;
+    max-width: 360px;
+    margin-bottom: 1.25rem;
+  }
+
+  @media (max-width: 720px) {
+    .footer-blurb { margin-inline: auto; }
+  }
+
   .socials {
     display: flex;
-    gap: 1rem;
+    gap: 0.75rem;
+  }
+
+  @media (max-width: 720px) {
+    .socials { justify-content: center; }
   }
 
   .social-link {
-    width: 44px;
-    height: 44px;
+    width: 42px;
+    height: 42px;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.12);
     display: flex;
@@ -91,8 +157,40 @@ const icons: Record<string, string> = {
     color: #2b3a67;
   }
 
-  .copyright {
+  .footer-col h4 {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: #8ecbf5;
+  }
+
+  .footer-col ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .footer-col a {
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: none;
+    font-size: 0.92rem;
+    transition: color 0.2s;
+  }
+
+  .footer-col a:hover { color: #f4b8c9; }
+
+  .footer-bottom {
+    max-width: 1100px;
+    margin: 2.5rem auto 0;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    text-align: center;
+  }
+
+  .footer-bottom p {
     font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.65);
+    color: rgba(255, 255, 255, 0.55);
   }
 </style>

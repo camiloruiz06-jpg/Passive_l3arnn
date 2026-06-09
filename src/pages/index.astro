@@ -14,6 +14,11 @@ const posts = await client.fetch(`
     publishedAt
   }
 `)
+
+// Lista de categorías únicas que realmente tienen posts (para los filtros)
+const categories: string[] = [
+  ...new Set(posts.map((p: any) => p.category).filter(Boolean)),
+] as string[]
 ---
 
 <html lang="es">
@@ -42,29 +47,60 @@ const posts = await client.fetch(`
           <p>🚀 Próximamente Los Primeros Posts...</p>
         </div>
       ) : (
-        <div class="grid">
-          {posts.map((post: any) => (
-            <a href={`/post/${post.slug.current}`} class="card">
-              {post.mainImage && (
-                <div class="card-image">
-                  <img
-                    src={urlFor(post.mainImage).width(600).height(400).url()}
-                    alt={post.title}
-                    loading="lazy"
-                  />
-                  {post.category && <span class="badge">{post.category}</span>}
+        <>
+          {categories.length > 0 && (
+            <div class="filters">
+              <button class="filter-chip active" data-filter="all">Todos</button>
+              {categories.map((cat) => (
+                <button class="filter-chip" data-filter={cat}>{cat}</button>
+              ))}
+            </div>
+          )}
+
+          <div class="grid">
+            {posts.map((post: any) => (
+              <a
+                href={`/post/${post.slug.current}`}
+                class="card"
+                data-category={post.category || ''}
+              >
+                {post.mainImage && (
+                  <div class="card-image">
+                    <img
+                      src={urlFor(post.mainImage).width(600).height(400).url()}
+                      alt={post.title}
+                      loading="lazy"
+                    />
+                    {post.category && <span class="badge">{post.category}</span>}
+                  </div>
+                )}
+                <div class="card-body">
+                  <h2>{post.title}</h2>
+                  {post.excerpt && <p>{post.excerpt}</p>}
+                  <span class="read-more">Leer Más →</span>
                 </div>
-              )}
-              <div class="card-body">
-                <h2>{post.title}</h2>
-                {post.excerpt && <p>{post.excerpt}</p>}
-                <span class="read-more">Leer Más →</span>
-              </div>
-            </a>
-          ))}
-        </div>
+              </a>
+            ))}
+          </div>
+        </>
       )}
     </main>
+
+    <script is:inline>
+      const chips = document.querySelectorAll('.filter-chip')
+      const cards = document.querySelectorAll('.card')
+      chips.forEach((chip) => {
+        chip.addEventListener('click', () => {
+          const filter = chip.getAttribute('data-filter')
+          chips.forEach((c) => c.classList.remove('active'))
+          chip.classList.add('active')
+          cards.forEach((card) => {
+            const cat = card.getAttribute('data-category')
+            card.style.display = filter === 'all' || cat === filter ? 'flex' : 'none'
+          })
+        })
+      })
+    </script>
 
     <Footer />
   </body>
@@ -81,7 +117,7 @@ const posts = await client.fetch(`
   }
 
   header {
-    background: linear-gradient(180deg, #8ecbf5 0%, #b9defa 45%, #f7cdda 100%);
+    background: linear-gradient(180deg, #8ecbf5 0%, #b9defa 45%, #f7cdda 80%, #fdf2f6 100%);
     padding: 3rem 1.5rem 3.5rem;
     text-align: center;
   }
@@ -97,8 +133,10 @@ const posts = await client.fetch(`
   .logo-img {
     width: 130px;
     height: 130px;
-    object-fit: contain;
-    filter: drop-shadow(0 6px 14px rgba(43, 58, 103, 0.2));
+    object-fit: cover;
+    border-radius: 50%;
+    border: 4px solid #fff;
+    box-shadow: 0 8px 20px rgba(43, 58, 103, 0.22);
   }
 
   .logo-text {
@@ -122,6 +160,38 @@ const posts = await client.fetch(`
     max-width: 1200px;
     margin: 0 auto;
     padding: 3rem 1.5rem;
+  }
+
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.6rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .filter-chip {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 0.92rem;
+    font-weight: 500;
+    padding: 0.5rem 1.25rem;
+    border-radius: 999px;
+    border: 2px solid #e3d5dd;
+    background: #fff;
+    color: #5a6789;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .filter-chip:hover {
+    border-color: #8ecbf5;
+    color: #2b3a67;
+  }
+
+  .filter-chip.active {
+    background: #8ecbf5;
+    border-color: #8ecbf5;
+    color: #fff;
   }
 
   .grid {
