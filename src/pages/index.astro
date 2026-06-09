@@ -1,0 +1,217 @@
+---
+import { client, urlFor } from '../lib/sanity'
+
+const posts = await client.fetch(`
+  *[_type == "post"] | order(publishedAt desc) {
+    _id,
+    title,
+    slug,
+    mainImage,
+    category,
+    excerpt,
+    publishedAt
+  }
+`)
+---
+
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Datos curiosos y fascinantes sobre ciencia, tecnología y el mundo. Aprende de forma pasiva con passive_l3arn." />
+    <title>passive_l3arn — Aprende sin darte cuenta</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <header>
+      <div class="header-inner">
+        <div class="logo">
+          <span class="logo-icon">🧠</span>
+          <span class="logo-text">passive_l3arn</span>
+        </div>
+        <p class="tagline">Datos curiosos que no sabías que necesitabas saber</p>
+      </div>
+    </header>
+
+    <main>
+      {posts.length === 0 ? (
+        <div class="empty">
+          <p>🚀 Próximamente los primeros posts...</p>
+        </div>
+      ) : (
+        <div class="grid">
+          {posts.map((post: any) => (
+            <a href={`/post/${post.slug.current}`} class="card">
+              {post.mainImage && (
+                <div class="card-image">
+                  <img
+                    src={urlFor(post.mainImage).width(600).height(400).url()}
+                    alt={post.title}
+                    loading="lazy"
+                  />
+                  {post.category && <span class="badge">{post.category}</span>}
+                </div>
+              )}
+              <div class="card-body">
+                <h2>{post.title}</h2>
+                {post.excerpt && <p>{post.excerpt}</p>}
+                <span class="read-more">Leer más →</span>
+              </div>
+            </a>
+          ))}
+        </div>
+      )}
+    </main>
+
+    <footer>
+      <p>© 2025 passive_l3arn · Hecho con 🧠 y curiosidad</p>
+    </footer>
+  </body>
+</html>
+
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #0a0a0a;
+    color: #f0f0f0;
+    min-height: 100vh;
+  }
+
+  header {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    padding: 3rem 1.5rem;
+    text-align: center;
+    border-bottom: 1px solid #222;
+  }
+
+  .header-inner { max-width: 800px; margin: 0 auto; }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .logo-icon { font-size: 2.5rem; }
+
+  .logo-text {
+    font-size: 2rem;
+    font-weight: 900;
+    background: linear-gradient(90deg, #a78bfa, #60a5fa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .tagline {
+    color: #888;
+    font-size: 1rem;
+    margin-top: 0.5rem;
+  }
+
+  main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .card {
+    background: #111;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid #222;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .card:hover {
+    transform: translateY(-4px);
+    border-color: #a78bfa;
+  }
+
+  .card-image {
+    position: relative;
+    aspect-ratio: 3/2;
+    overflow: hidden;
+  }
+
+  .card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+  }
+
+  .card:hover .card-image img { transform: scale(1.05); }
+
+  .badge {
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+    background: #a78bfa;
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .card-body {
+    padding: 1.25rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .card-body h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    line-height: 1.4;
+    color: #f0f0f0;
+  }
+
+  .card-body p {
+    font-size: 0.875rem;
+    color: #888;
+    line-height: 1.6;
+    flex: 1;
+  }
+
+  .read-more {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #a78bfa;
+    margin-top: 0.5rem;
+  }
+
+  .empty {
+    text-align: center;
+    padding: 6rem 2rem;
+    color: #555;
+    font-size: 1.25rem;
+  }
+
+  footer {
+    text-align: center;
+    padding: 2rem;
+    color: #444;
+    font-size: 0.85rem;
+    border-top: 1px solid #1a1a1a;
+  }
+</style>
