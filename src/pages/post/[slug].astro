@@ -1,6 +1,6 @@
 ---
 import { client, urlFor } from '../../lib/sanity'
-import { site } from '../../lib/config'
+import { site, catColor } from '../../lib/config'
 import Footer from '../../components/Footer.astro'
 
 export async function getStaticPaths() {
@@ -20,15 +20,29 @@ const post = await client.fetch(`
     body,
     publishedAt,
     funFact,
-    sources
+    sources,
+    "plain": pt::text(body)
   }
 `, { slug })
 
 if (!post) return Astro.redirect('/404')
 
+// Posts relacionados: misma categoría primero, si no, los más recientes
+const related = await client.fetch(`
+  *[_type == "post" && slug.current != $slug] | order(
+    select(category == $cat => 0, 1), publishedAt desc
+  )[0...3] {
+    title, slug, mainImage, category
+  }
+`, { slug, cat: post.category || '' })
+
 const formattedDate = post.publishedAt
   ? new Date(post.publishedAt).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })
   : null
+
+// Tiempo de lectura aproximado
+const words = (post.plain || '').trim().split(/\s+/).filter(Boolean).length
+const readMinutes = Math.max(1, Math.ceil(words / 200))
 
 const canonical = `${site.url}/post/${slug}`
 const ogImage = post.mainImage
@@ -83,7 +97,7 @@ const jsonLd = {
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet" />
   </head>
   <body>
     <nav>
@@ -100,14 +114,26 @@ const jsonLd = {
             src={urlFor(post.mainImage).width(1200).height(600).url()}
             alt={post.title}
           />
-          {post.category && <span class="badge">{post.category}</span>}
+          {post.category && <span class="badge" style={`background:${catColor(post.category)}`}>{post.category}</span>}
         </div>
       )}
 
       <div class="content">
-        {formattedDate && <time class="date">{formattedDate}</time>}
+        <div class="meta-line">
+          {formattedDate && <time class="date">{formattedDate}</time>}
+          <span class="dot">·</span>
+          <span class="date">📖 {readMinutes} min de lectura</span>
+        </div>
         <h1>{post.title}</h1>
         {post.excerpt && <p class="excerpt">{post.excerpt}</p>}
+
+        <div class="share">
+          <span class="share-label">Compartir:</span>
+          <a class="share-btn wsp" href={`https://wa.me/?text=${encodeURIComponent(post.title + ' ' + canonical)}`} target="_blank" rel="noopener" aria-label="Compartir en WhatsApp">WhatsApp</a>
+          <a class="share-btn fb" href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(canonical)}`} target="_blank" rel="noopener" aria-label="Compartir en Facebook">Facebook</a>
+          <a class="share-btn x" href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(post.title)}&url=${encodeURIComponent(canonical)}`} target="_blank" rel="noopener" aria-label="Compartir en X">X</a>
+          <button class="share-btn copy" data-url={canonical}>Copiar link</button>
+        </div>
 
         {post.funFact && (
           <div class="fun-fact">
@@ -144,6 +170,39 @@ const jsonLd = {
       </div>
     </article>
 
+    {related && related.length > 0 && (
+      <section class="related">
+        <h3>Sigue Leyendo</h3>
+        <div class="related-grid">
+          {related.map((r: any) => (
+            <a href={`/post/${r.slug.current}`} class="related-card">
+              {r.mainImage && (
+                <img src={urlFor(r.mainImage).width(400).height(260).url()} alt={r.title} loading="lazy" />
+              )}
+              <div class="related-body">
+                {r.category && <span class="mini-badge" style={`background:${catColor(r.category)}`}>{r.category}</span>}
+                <h4>{r.title}</h4>
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
+    )}
+
+    <script is:inline>
+      const copyBtn = document.querySelector('.share-btn.copy')
+      if (copyBtn) {
+        copyBtn.addEventListener('click', async () => {
+          try {
+            await navigator.clipboard.writeText(copyBtn.getAttribute('data-url'))
+            const original = copyBtn.textContent
+            copyBtn.textContent = '¡Copiado! ✓'
+            setTimeout(() => (copyBtn.textContent = original), 2000)
+          } catch (e) {}
+        })
+      }
+    </script>
+
     <Footer />
   </body>
 </html>
@@ -152,7 +211,7 @@ const jsonLd = {
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   body {
-    font-family: 'Nunito', sans-serif;
+    font-family: 'Manrope', sans-serif;
     background: #fdf2f6;
     color: #2b3a67;
     min-height: 100vh;
@@ -220,18 +279,58 @@ const jsonLd = {
     box-shadow: 0 10px 30px rgba(43, 58, 103, 0.1);
   }
 
+  .meta-line {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .meta-line .dot { color: #c9d2e6; }
+
   .date {
     font-size: 0.8rem;
     color: #8a97b8;
-    display: block;
-    margin-bottom: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     font-weight: 700;
   }
 
+  /* Compartir */
+  .share {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    justify-content: center;
+  }
+
+  .share-label { font-size: 0.85rem; font-weight: 700; color: #8a97b8; }
+
+  .share-btn {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 700;
+    padding: 0.4rem 0.9rem;
+    border-radius: 999px;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    color: #fff;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+  }
+
+  .share-btn:hover { transform: translateY(-2px); opacity: 0.92; }
+
+  .share-btn.wsp { background: #25d366; }
+  .share-btn.fb { background: #1877f2; }
+  .share-btn.x { background: #111; }
+  .share-btn.copy { background: #8ecbf5; color: #2b3a67; }
+
   h1 {
-    font-family: 'Fredoka', sans-serif;
+    font-family: 'Space Grotesk', sans-serif;
     font-size: 2.2rem;
     font-weight: 700;
     line-height: 1.2;
@@ -309,7 +408,7 @@ const jsonLd = {
   }
 
   .sources h3 {
-    font-family: 'Fredoka', sans-serif;
+    font-family: 'Space Grotesk', sans-serif;
     font-size: 1rem;
     color: #8a97b8;
     text-transform: uppercase;
@@ -329,4 +428,77 @@ const jsonLd = {
   }
 
   .sources a:hover { text-decoration: underline; }
+
+  /* Posts relacionados */
+  .related {
+    max-width: 1000px;
+    margin: 4rem auto 0;
+    padding: 0 1.5rem;
+  }
+
+  .related h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #2b3a67;
+    text-align: center;
+    margin-bottom: 1.75rem;
+  }
+
+  .related-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .related-card {
+    background: #fff;
+    border-radius: 18px;
+    overflow: hidden;
+    border: 2px solid #f0e3ea;
+    text-decoration: none;
+    color: inherit;
+    box-shadow: 0 4px 16px rgba(43, 58, 103, 0.06);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .related-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 26px rgba(43, 58, 103, 0.14);
+  }
+
+  .related-card img {
+    width: 100%;
+    aspect-ratio: 3/2;
+    object-fit: cover;
+    display: block;
+  }
+
+  .related-body {
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .mini-badge {
+    align-self: flex-start;
+    background: #8ecbf5;
+    color: #fff;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 0.2rem 0.7rem;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .related-body h4 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.35;
+    color: #2b3a67;
+    text-align: center;
+  }
 </style>

@@ -9,6 +9,21 @@ export const site = {
     'Datos curiosos y fascinantes sobre ciencia, tecnología, naturaleza y el mundo. Aprende de forma pasiva con Passive_l3arn.',
 }
 
+// 🎨 Un color para cada categoría (se usa en las etiquetas)
+export const categoryColors: Record<string, string> = {
+  Ciencia: '#4a9fe0',       // azul
+  Tecnología: '#8b7ff5',    // violeta
+  Historia: '#e0a04a',      // ámbar
+  Naturaleza: '#3fbf8f',    // verde
+  Espacio: '#6c5ce7',       // índigo
+  Curiosidades: '#f4849f',  // rosa
+  Salud: '#e06a6a',         // rojo
+}
+
+export function catColor(cat?: string): string {
+  return (cat && categoryColors[cat]) || '#8ecbf5'
+}
+
 // 🔗 Tus redes sociales — reemplazá el "#" por tu link real
 export const socials = [
   { name: 'Instagram', url: 'https://www.instagram.com/passive_l3arn/', icon: 'instagram' },

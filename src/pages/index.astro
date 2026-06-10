@@ -1,6 +1,6 @@
 ---
 import { client, urlFor } from '../lib/sanity'
-import { site } from '../lib/config'
+import { site, catColor } from '../lib/config'
 import Footer from '../components/Footer.astro'
 
 const posts = await client.fetch(`
@@ -11,14 +11,30 @@ const posts = await client.fetch(`
     mainImage,
     category,
     excerpt,
-    publishedAt
+    publishedAt,
+    "plain": pt::text(body)
   }
 `)
 
-// Lista de categorías únicas que realmente tienen posts (para los filtros)
+// Categorías únicas para los filtros
 const categories: string[] = [
   ...new Set(posts.map((p: any) => p.category).filter(Boolean)),
 ] as string[]
+
+// Tiempo de lectura aproximado (200 palabras por minuto)
+function readingTime(text: string): number {
+  const words = (text || '').trim().split(/\s+/).filter(Boolean).length
+  return Math.max(1, Math.ceil(words / 200))
+}
+
+// Fecha de última actualización
+const lastDate = posts[0]?.publishedAt ? new Date(posts[0].publishedAt) : null
+const lastUpdated = lastDate
+  ? lastDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
+  : null
+
+// Post destacado (cambia en cada reconstrucción)
+const featured = posts.length > 0 ? posts[Math.floor(Math.random() * posts.length)] : null
 ---
 
 <html lang="es">
@@ -46,10 +62,13 @@ const categories: string[] = [
     <meta name="twitter:image" content={`${site.url}/logo.png`} />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet" />
   </head>
   <body>
     <header>
+      {lastUpdated && (
+        <div class="update-badge">🔄 Actualizado: {lastUpdated}</div>
+      )}
       <div class="header-inner">
         <img src="/logo.png" alt={site.name} class="logo-img" />
         <h1 class="logo-text">{site.name}</h1>
@@ -64,11 +83,23 @@ const categories: string[] = [
         </div>
       ) : (
         <>
+          <div class="search-wrap">
+            <input
+              id="search"
+              type="search"
+              placeholder="🔍 Buscar un dato curioso..."
+              autocomplete="off"
+            />
+          </div>
+
           {categories.length > 0 && (
             <div class="filters">
               <button class="filter-chip active" data-filter="all">Todos</button>
               {categories.map((cat) => (
-                <button class="filter-chip" data-filter={cat}>{cat}</button>
+                <button class="filter-chip" data-filter={cat}>
+                  <span class="chip-dot" style={`background:${catColor(cat)}`}></span>
+                  {cat}
+                </button>
               ))}
             </div>
           )}
@@ -79,6 +110,7 @@ const categories: string[] = [
                 href={`/post/${post.slug.current}`}
                 class="card"
                 data-category={post.category || ''}
+                data-title={post.title.toLowerCase()}
               >
                 {post.mainImage && (
                   <div class="card-image">
@@ -87,17 +119,44 @@ const categories: string[] = [
                       alt={post.title}
                       loading="lazy"
                     />
-                    {post.category && <span class="badge">{post.category}</span>}
+                    {post.category && <span class="badge" style={`background:${catColor(post.category)}`}>{post.category}</span>}
                   </div>
                 )}
                 <div class="card-body">
                   <h2>{post.title}</h2>
                   {post.excerpt && <p>{post.excerpt}</p>}
-                  <span class="read-more">Leer Más →</span>
+                  <div class="card-meta">
+                    <span class="reading">📖 {readingTime(post.plain)} min</span>
+                    <span class="read-more">Leer Más →</span>
+                  </div>
                 </div>
               </a>
             ))}
           </div>
+
+          <p class="no-results" hidden>No encontramos ningún dato con esa búsqueda 🔍</p>
+
+          {featured && (
+            <a href={`/post/${featured.slug.current}`} class="featured">
+              {featured.mainImage && (
+                <div class="featured-img">
+                  <img
+                    src={urlFor(featured.mainImage).width(700).height(500).url()}
+                    alt={featured.title}
+                  />
+                </div>
+              )}
+              <div class="featured-body">
+                <span class="featured-label">✨ Dato Destacado</span>
+                <h2>{featured.title}</h2>
+                {featured.excerpt && <p>{featured.excerpt}</p>}
+                <div class="featured-meta">
+                  {featured.category && <span class="mini-badge" style={`background:${catColor(featured.category)}`}>{featured.category}</span>}
+                  <span class="reading">📖 {readingTime(featured.plain)} min de lectura</span>
+                </div>
+              </div>
+            </a>
+          )}
         </>
       )}
     </main>
@@ -105,17 +164,40 @@ const categories: string[] = [
     <script is:inline>
       const chips = document.querySelectorAll('.filter-chip')
       const cards = document.querySelectorAll('.card')
+      const search = document.getElementById('search')
+      const noResults = document.querySelector('.no-results')
+      let currentCat = 'all'
+      let currentText = ''
+
+      function apply() {
+        let visible = 0
+        cards.forEach((card) => {
+          const cat = card.getAttribute('data-category')
+          const title = card.getAttribute('data-title') || ''
+          const matchCat = currentCat === 'all' || cat === currentCat
+          const matchText = !currentText || title.includes(currentText)
+          const show = matchCat && matchText
+          card.style.display = show ? 'flex' : 'none'
+          if (show) visible++
+        })
+        if (noResults) noResults.hidden = visible !== 0
+      }
+
       chips.forEach((chip) => {
         chip.addEventListener('click', () => {
-          const filter = chip.getAttribute('data-filter')
+          currentCat = chip.getAttribute('data-filter')
           chips.forEach((c) => c.classList.remove('active'))
           chip.classList.add('active')
-          cards.forEach((card) => {
-            const cat = card.getAttribute('data-category')
-            card.style.display = filter === 'all' || cat === filter ? 'flex' : 'none'
-          })
+          apply()
         })
       })
+
+      if (search) {
+        search.addEventListener('input', () => {
+          currentText = search.value.toLowerCase().trim()
+          apply()
+        })
+      }
     </script>
 
     <Footer />
@@ -126,7 +208,7 @@ const categories: string[] = [
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   body {
-    font-family: 'Nunito', sans-serif;
+    font-family: 'Manrope', sans-serif;
     background: #fdf2f6;
     color: #2b3a67;
     min-height: 100vh;
@@ -136,6 +218,29 @@ const categories: string[] = [
     background: linear-gradient(180deg, #8ecbf5 0%, #b9defa 45%, #f7cdda 80%, #fdf2f6 100%);
     padding: 3rem 1.5rem 3.5rem;
     text-align: center;
+    position: relative;
+  }
+
+  .update-badge {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(43, 58, 103, 0.12);
+    color: #2b3a67;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.35rem 0.85rem;
+    border-radius: 999px;
+    backdrop-filter: blur(4px);
+  }
+
+  @media (max-width: 560px) {
+    .update-badge {
+      position: static;
+      display: inline-block;
+      margin-bottom: 1rem;
+    }
   }
 
   .header-inner {
@@ -156,7 +261,7 @@ const categories: string[] = [
   }
 
   .logo-text {
-    font-family: 'Fredoka', sans-serif;
+    font-family: 'Space Grotesk', sans-serif;
     font-size: 2.5rem;
     font-weight: 700;
     color: #2b3a67;
@@ -175,8 +280,115 @@ const categories: string[] = [
   main {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 3rem 1.5rem;
+    padding: 2rem 1.5rem 3rem;
   }
+
+  /* Destacado */
+  .featured {
+    display: grid;
+    grid-template-columns: 0.8fr 1.2fr;
+    align-items: stretch;
+    background: #fff;
+    border-radius: 20px;
+    overflow: hidden;
+    border: 2px solid #f0e3ea;
+    box-shadow: 0 6px 20px rgba(43, 58, 103, 0.08);
+    text-decoration: none;
+    color: inherit;
+    margin-top: 3.5rem;
+    max-width: 820px;
+    margin-inline: auto;
+    transition: transform 0.22s ease, box-shadow 0.22s ease;
+  }
+
+  .featured:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 30px rgba(43, 58, 103, 0.14);
+  }
+
+  .featured-img { overflow: hidden; }
+
+  .featured-img img {
+    width: 100%;
+    height: 100%;
+    max-height: 220px;
+    object-fit: cover;
+  }
+
+  .featured-body {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .featured-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    color: #f4849f;
+    font-size: 0.85rem;
+  }
+
+  .featured-body h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    line-height: 1.25;
+    color: #2b3a67;
+  }
+
+  .featured-body p {
+    color: #5a6789;
+    line-height: 1.55;
+    font-size: 0.9rem;
+  }
+
+  .featured-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.4rem;
+  }
+
+  .mini-badge {
+    background: #8ecbf5;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .reading { font-size: 0.82rem; color: #8a97b8; font-weight: 600; }
+
+  @media (max-width: 640px) {
+    .featured { grid-template-columns: 1fr; }
+    .featured-body h2 { font-size: 1.4rem; }
+  }
+
+  /* Buscador */
+  .search-wrap {
+    max-width: 480px;
+    margin: 0 auto 1.5rem;
+  }
+
+  #search {
+    width: 100%;
+    padding: 0.8rem 1.25rem;
+    border-radius: 999px;
+    border: 2px solid #e3d5dd;
+    background: #fff;
+    font-family: 'Manrope', sans-serif;
+    font-size: 1rem;
+    color: #2b3a67;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  #search:focus { border-color: #8ecbf5; }
 
   .filters {
     display: flex;
@@ -187,7 +399,7 @@ const categories: string[] = [
   }
 
   .filter-chip {
-    font-family: 'Fredoka', sans-serif;
+    font-family: 'Space Grotesk', sans-serif;
     font-size: 0.92rem;
     font-weight: 500;
     padding: 0.5rem 1.25rem;
@@ -199,10 +411,20 @@ const categories: string[] = [
     transition: all 0.2s ease;
   }
 
-  .filter-chip:hover {
-    border-color: #8ecbf5;
-    color: #2b3a67;
+  .filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
   }
+
+  .chip-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .filter-chip:hover { border-color: #8ecbf5; color: #2b3a67; }
 
   .filter-chip.active {
     background: #8ecbf5;
@@ -274,7 +496,7 @@ const categories: string[] = [
   }
 
   .card-body h2 {
-    font-family: 'Fredoka', sans-serif;
+    font-family: 'Space Grotesk', sans-serif;
     font-size: 1.2rem;
     font-weight: 600;
     line-height: 1.35;
@@ -289,11 +511,25 @@ const categories: string[] = [
     flex: 1;
   }
 
+  .card-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 0.4rem;
+  }
+
   .read-more {
     font-size: 0.85rem;
     font-weight: 700;
     color: #4a9fe0;
-    margin-top: 0.4rem;
+  }
+
+  .no-results {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #8a97b8;
+    font-size: 1.1rem;
+    font-family: 'Space Grotesk', sans-serif;
   }
 
   .empty {
@@ -301,6 +537,6 @@ const categories: string[] = [
     padding: 6rem 2rem;
     color: #8a97b8;
     font-size: 1.3rem;
-    font-family: 'Fredoka', sans-serif;
+    font-family: 'Space Grotesk', sans-serif;
   }
 </style>
